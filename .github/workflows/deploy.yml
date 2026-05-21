@@ -21,8 +21,8 @@ jobs:
         cache: maven
 
     - name: Build con Maven
-      # INSTRUCCIÓN 1: Cambia NOMBRESUBCARPETA por el nombre real de tu carpeta
-      working-directory: ./NOMBRESUBCARPETA
+      # Aquí está la magia: le decimos al servidor que entre a esta carpeta exacta
+      working-directory: ./Springboot-API-REST
       run: mvn clean package -DskipTests -B
 
     - name: Login a Docker Hub
@@ -34,8 +34,8 @@ jobs:
     - name: Build y Push imagen
       uses: docker/build-push-action@v5
       with:
-        # INSTRUCCIÓN 2: Cambia NOMBRESUBCARPETA por el nombre real de tu carpeta
-        context: ./NOMBRESUBCARPETA
+        # El contexto de Docker también debe apuntar a la misma subcarpeta
+        context: ./Springboot-API-REST
         push: true
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/back-ventas:latest
