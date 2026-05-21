@@ -21,6 +21,8 @@ jobs:
         cache: maven
 
     - name: Build con Maven
+      # INSTRUCCIÓN 1: Cambia NOMBRESUBCARPETA por el nombre real de tu carpeta
+      working-directory: ./NOMBRESUBCARPETA
       run: mvn clean package -DskipTests -B
 
     - name: Login a Docker Hub
@@ -32,12 +34,13 @@ jobs:
     - name: Build y Push imagen
       uses: docker/build-push-action@v5
       with:
-        context: .
+        # INSTRUCCIÓN 2: Cambia NOMBRESUBCARPETA por el nombre real de tu carpeta
+        context: ./NOMBRESUBCARPETA
         push: true
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/back-ventas:latest
 
-    - name: Deploy en EC2 Privada
+    - name: Deploy en EC2 Privada (Ventas)
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_DATA_HOST }}
