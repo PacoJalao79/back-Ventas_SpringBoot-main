@@ -1,43 +1,34 @@
-# Etapa 1: Build con Maven
-FROM maven:3.9-eclipse-temurin-17-alpine AS builder
-
-WORKDIR /build
-
-# Copiar archivos POM
-COPY pom.xml .
-
-# Descargar dependencias (aprovecha el caché de Docker)
-RUN mvn dependency:go-offline -DdownloadSources=false -DdownloadJavadoc=false
-
-# Copiar código fuente
-COPY src ./src
-
-# Compilar y generar JAR
-RUN mvn clean package -DskipTests
-
-# Etapa 2: Runtime
-FROM eclipse-temurin:17-jre-alpine
+# ============================================================
+# STAGE 1: Build con Maven
+# ============================================================
+FROM maven:3.9.6-eclipse-temurin-17-alpine AS builder
 
 WORKDIR /app
 
-# Crear usuario no-root para ejecutar la aplicación
-RUN addgroup -g 1001 -S springuser && adduser -S springuser -u 1001
+# Copiar solo el pom.xml primero (optimiza caché de capas)
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Copiar JAR desde la etapa de build
-COPY --from=builder /build/target/*.jar app.jar
+# Copiar código fuente y compilar
+COPY src ./src
+RUN mvn clean package -DskipTests -B
 
-# Cambiar propiedad de los archivos
-RUN chown -R springuser:springuser /app
+# ============================================================
+# STAGE 2: Runtime mínimo
+# ============================================================
+FROM eclipse-temurin:17-jre-alpine
 
-# Cambiar al usuario no-root
-USER springuser
+# Usuario no root (buena práctica de seguridad)
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Exponer puerto
+WORKDIR /app
+
+# Copiar el JAR desde el stage anterior
+COPY --from=builder /app/target/*.jar app.jar
+
+# Cambiar al usuario no root
+USER appuser
+
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:8080/swagger-ui.html || exit 1
-
-# Comando para ejecutar la aplicación
-CMD ["java", "-jar", "app.jar", "--spring.profiles.active=docker"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
